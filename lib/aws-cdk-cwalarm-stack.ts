@@ -7,7 +7,9 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as chatbot from 'aws-cdk-lib/aws-chatbot';
 import * as iot from 'aws-cdk-lib/aws-iot';
 
-const ruleNameList: string[] = ['Rpi1', 'Rpi2', 'Rpi3', 'Rpi4', 'Rpi5'];
+// const ruleNameList: string[] = ['Rpi1', 'Rpi2', 'Rpi3', 'Rpi4', 'Rpi5'];
+const ruleNameList: string[] = ['Rpi1', 'TempCO2', 'Rpi3', 'Rpi4', 'Rpi5'];
+
 const metricNameList: string[] = [
   'Connect.ClientIDThrottle',
   'Connect.ClientError',
@@ -18,9 +20,9 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const ErrorNotifyTopic = new sns.Topic(this, `ErrorNotifyTopic`, {
-      displayName: `ErrorNotifyTopic`,
-      topicName: `ErrorNotifyTopic`,
+    const snstopic = new sns.Topic(this, `iot-twin-monitoring-topic`, {
+      displayName: `iot-twin-monitoring-topic`,
+      topicName: `iot-twin-monitoring-topic`,
     });
 
     for (let ruleName of ruleNameList) {
@@ -46,13 +48,13 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
           threshold: 10,
           evaluationPeriods: 1,
           datapointsToAlarm: 1,
-          treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+          treatMissingData: cloudwatch.TreatMissingData.BREACHING,
           comparisonOperator:
             cloudwatch.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
         }
       );
 
-      const action = new cwactions.SnsAction(ErrorNotifyTopic);
+      const action = new cwactions.SnsAction(snstopic);
 
       alarm.addAlarmAction(action);
     }
@@ -63,14 +65,17 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
         metricName: metricName,
         statistic: 'SampleCount',
         period: cdk.Duration.minutes(5),
+        dimensionsMap: {
+          Protocol: 'MQTT',
+        },
       });
 
       const alarm = new cloudwatch.Alarm(
         this,
-        'iot-twin-monitoring-11' + metricName,
+        'iot-twin-monitoring' + metricName,
         {
           metric: metric,
-          alarmName: 'iot-twin-monitoring-11' + metricName,
+          alarmName: 'iot-twin-monitoring' + metricName,
 
           actionsEnabled: true,
           threshold: 1,
@@ -82,7 +87,7 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
         }
       );
 
-      const action = new cwactions.SnsAction(ErrorNotifyTopic);
+      const action = new cwactions.SnsAction(snstopic);
 
       alarm.addAlarmAction(action);
     }
