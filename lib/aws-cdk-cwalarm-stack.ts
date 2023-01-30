@@ -72,10 +72,10 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
 
       const alarm = new cloudwatch.Alarm(
         this,
-        'iot-twin-monitoring' + metricName,
+        'iot-twin-monitoring-' + metricName,
         {
           metric: metric,
-          alarmName: 'iot-twin-monitoring' + metricName,
+          alarmName: 'iot-twin-monitoring-' + metricName,
 
           actionsEnabled: true,
           threshold: 1,
