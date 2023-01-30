@@ -8,6 +8,11 @@ import * as chatbot from 'aws-cdk-lib/aws-chatbot';
 import * as iot from 'aws-cdk-lib/aws-iot';
 
 const ruleNameList: string[] = ['Rpi1', 'Rpi2', 'Rpi3', 'Rpi4', 'Rpi5'];
+const metricNameList: string[] = [
+  'Connect.ClientIDThrottle',
+  'Connect.ClientError',
+  'PublishIn.ClientError',
+];
 
 export class AwsCdkCwalarmStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -18,7 +23,7 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
       topicName: `ErrorNotifyTopic`,
     });
 
-    for (let ruleName in ruleNameList) {
+    for (let ruleName of ruleNameList) {
       const metric = new cloudwatch.Metric({
         namespace: 'AWS/IoT',
         metricName: 'TopicMatch',
@@ -30,22 +35,59 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
         },
       });
 
-      const alarm = new cloudwatch.Alarm(this, 'TopicMatchAlarm' + ruleName, {
-        metric: metric,
-        alarmName: 'TopicMatchAlarm-' + ruleName,
-        actionsEnabled: true,
-        threshold: 10,
-        evaluationPeriods: 1,
-        datapointsToAlarm: 1,
-        comparisonOperator:
-          cloudwatch.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
-      });
+      const alarm = new cloudwatch.Alarm(
+        this,
+        'iot-twin-monitoring-TopicMatch-' + ruleName,
+        {
+          metric: metric,
+          alarmName: 'iot-twin-monitoring-TopicMatch-' + ruleName,
+
+          actionsEnabled: true,
+          threshold: 10,
+          evaluationPeriods: 1,
+          datapointsToAlarm: 1,
+          treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+          comparisonOperator:
+            cloudwatch.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
+        }
+      );
 
       const action = new cwactions.SnsAction(ErrorNotifyTopic);
 
       alarm.addAlarmAction(action);
     }
 
+    for (let metricName of metricNameList) {
+      const metric = new cloudwatch.Metric({
+        namespace: 'AWS/IoT',
+        metricName: metricName,
+        statistic: 'SampleCount',
+        period: cdk.Duration.minutes(5),
+      });
+
+      const alarm = new cloudwatch.Alarm(
+        this,
+        'iot-twin-monitoring-11' + metricName,
+        {
+          metric: metric,
+          alarmName: 'iot-twin-monitoring-11' + metricName,
+
+          actionsEnabled: true,
+          threshold: 1,
+          evaluationPeriods: 1,
+          datapointsToAlarm: 1,
+          treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+          comparisonOperator:
+            cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        }
+      );
+
+      const action = new cwactions.SnsAction(ErrorNotifyTopic);
+
+      alarm.addAlarmAction(action);
+    }
+
+    // iot-twin-monitoring-Connect.ClientIDThrottle
     // // Chatbot Slack Notification Integration
     // const bot = new chatbot.CfnSlackChannelConfiguration(
     //   this,
