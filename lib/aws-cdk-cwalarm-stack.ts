@@ -87,9 +87,9 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
         }
       );
 
-      const action = new cwactions.SnsAction(snstopic);
+      // const action = new cwactions.SnsAction(snstopic);
+      // alarm.addAlarmAction(action);
 
-      alarm.addAlarmAction(action);
     }
 
     // iot-twin-monitoring-Connect.ClientIDThrottle
