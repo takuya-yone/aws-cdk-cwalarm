@@ -87,8 +87,8 @@ export class AwsCdkCwalarmStack extends cdk.Stack {
         }
       );
 
-      // const action = new cwactions.SnsAction(snstopic);
-      // alarm.addAlarmAction(action);
+      const action = new cwactions.SnsAction(snstopic);
+      alarm.addAlarmAction(action);
 
     }
 
